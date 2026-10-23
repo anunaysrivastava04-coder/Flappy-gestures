@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Critical for mobile compatibility: prevents pinch-to-zoom and unwanted scrolling -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flappy Gesture - Complete Edition</title>
+    
+    <!-- Tailwind CSS for UI Layout -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for 8-bit retro look -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <!-- Tone.js for retro synthesized sound effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #70c5ce;
+            font-family: 'Press Start 2P', cursive;
+            touch-action: none; /* Prevents pull-to-refresh on mobile */
+            user-select: none;
+        }
+
+        .game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas#gameCanvas {
+            display: block;
+            background-color: transparent;
+            max-width: 100%;
+            max-height: 100%;
+            image-rendering: pixelated;
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+
+        .retro-panel {
+            background-color: #ded895;
+            border: 4px solid #543847;
+            border-radius: 4px;
+            padding: 24px;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.3);
+            text-align: center;
+            image-rendering: pixelated;
+            max-width: 95vw; /* Responsive width */
+            max-height: 90vh; /* Responsive height */
+            overflow-y: auto;
+        }
+
+        .neon-panel {
+            background-color: #ded895;
+            border: 4px solid #00d289;
+            border-radius: 4px;
+            padding: 32px 24px;
+            box-shadow: 0 0 20px rgba(0, 210, 137, 0.4);
+            text-align: center;
+            image-rendering: pixelated;
+            max-width: 95vw;
+        }
+
+        .retro-btn {
+            background-color: #e67e22;
+            color: white;
+            border: 4px solid white;
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 4px 0px #d35400, 0 5px 5px rgba(0,0,0,0.4);
+            margin: 10px;
+            font-family: 'Press Start 2P', cursive;
+            text-shadow: 2px 2px 0px #000;
+            transition: transform 0.1s;
+            max-width: 90vw;
+        }
+        .retro-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0px 0px #d35400;
+        }
+        .retro-btn.green {
+            background-color: #2ecc71;
+            box-shadow: 0 4px 0px #27ae60, 0 5px 5px rgba(0,0,0,0.4);
+        }
+        .retro-btn.green:active {
+            box-shadow: 0 0px 0px #27ae60;
+        }
+        .retro-btn.neon-green {
+            background-color: #00d289;
+            box-shadow: 0 0px 0px #00b374, 0 5px 5px rgba(0,0,0,0.4);
+            border: 4px solid white;
+        }
+        .retro-btn.neon-green:active {
+            box-shadow: 0 0px 0px #00b374;
+        }
+        .retro-btn.blue {
+            background-color: #3498db;
+            box-shadow: 0 4px 0px #2980b9, 0 5px 5px rgba(0,0,0,0.4);
+        }
+        .retro-btn.blue:active {
+            box-shadow: 0 0px 0px #2980b9;
+        }
+        .retro-btn.gray {
+            background-color: #95a5a6;
+            box-shadow: 0 4px 0px #7f8c8d, 0 5px 5px rgba(0,0,0,0.4);
+            color: #ecf0f1;
+        }
+        .retro-btn.purple {
+            background-color: #9b59b6;
+            box-shadow: 0 4px 0px #8e44ad, 0 5px 5px rgba(0,0,0,0.4);
+        }
+        .retro-btn.purple:active {
+            box-shadow: 0 0px 0px #8e44ad;
+        }
+        .retro-btn.red {
+            background-color: #e74c3c;
+            box-shadow: 0 4px 0px #c0392b, 0 5px 5px rgba(0,0,0,0.4);
+        }
+        .retro-btn.red:active {
+            box-shadow: 0 0px 0px #c0392b;
+        }
+
+        .setting-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .setting-btn {
+            padding: 8px 12px;
+            font-size: 10px;
+            margin: 0;
+        }
+
+        .title-text {
+            font-size: 40px;
+            color: white;
+            -webkit-text-stroke: 4px #543847;
+            text-shadow: 4px 4px 0px #543847;
+            margin-bottom: 30px;
+            line-height: 1.5;
+            text-align: center;
+        }
+
+        .score-display {
+            position: absolute;
+            top: 15%;
+            width: 100%;
+            text-align: center;
+            font-size: 56px;
+            color: white;
+            -webkit-text-stroke: 4px black;
+            text-shadow: 4px 4px 0px black;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .cam-hud {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 180px; 
+            background: #ded895; 
+            border: 4px solid #4a3b42; 
+            border-radius: 8px;
+            overflow: hidden;
+            z-index: 20;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s;
+        }
+        
+        .cam-feed {
+            width: 100%;
+            aspect-ratio: 1 / 1; 
+            background: black;
+            position: relative;
+            border-bottom: 4px solid #4a3b42;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .cam-feed video, #camCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover; 
+            transform: scaleX(-1); 
+        }
+        
+        #camCanvas {
+            background-color: transparent !important;
+            box-shadow: none !important;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .cam-status {
+            padding: 10px 4px;
+            font-size: 10px;
+            text-align: center;
+            font-family: 'Press Start 2P', cursive;
+            background: #ded895;
+            text-transform: uppercase;
+        }
+        
+        .status-ok { color: #00b894; font-weight: bold; } 
+        .status-lost { color: #d63031; font-weight: bold; } 
+
+        .cam-watermark {
+            padding: 6px 4px;
+            font-size: 6px;
+            text-align: center;
+            background: #ded895;
+            color: #543847;
+            border-top: 2px solid #4a3b42;
+            line-height: 1.5;
+        }
+
+        .loading-text {
+            color: white;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        #fps-counter {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            font-size: 10px;
+            text-shadow: 2px 2px 0px #000;
+            z-index: 20;
+            pointer-events: none;
+        }
+        
+        .shop-scroll::-webkit-scrollbar {
+            width: 12px;
+        }
+        .shop-scroll::-webkit-scrollbar-track {
+            background: #ded895; 
+            border-left: 2px solid #543847;
+        }
+        .shop-scroll::-webkit-scrollbar-thumb {
+            background: #d35400; 
+            border: 2px solid #543847;
+        }
+
+        @media (max-width: 768px) {
+            .title-text {
+                font-size: 28px;
+                -webkit-text-stroke: 3px #543847;
+                margin-bottom: 20px;
+            }
+            .score-display {
+                font-size: 40px;
+            }
+            .cam-hud {
+                width: 140px;
+                bottom: 10px;
+                left: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .title-text {
+                font-size: 22px;
+                -webkit-text-stroke: 2px #543847;
+            }
+            .retro-btn {
+                padding: 10px 16px;
+                font-size: 12px;
+                width: 85%;
+            }
+            .cam-hud {
+                width: 110px; /* Smaller HUD on phones so it doesn't block gameplay */
+            }
+            .cam-status {
+                font-size: 8px;
+                padding: 6px 2px;
+            }
+            .cam-watermark {
+                font-size: 5px;
+            }
+            #hud-controls {
+                gap: 2px;
+            }
+            #hud-controls .retro-btn {
+                padding: 6px 10px;
+                font-size: 8px;
+                margin: 0;
+            }
+            .retro-panel {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        
+        <div id="fps-counter" class="hidden">FPS: 0</div>
+
+        <div id="welcome-screen" class="screen" style="background-color: #0b0c10; z-index: 1000;">
+            <h1 class="title-text text-center mb-4" style="color: #0b0c10; -webkit-text-stroke: 2px #00d289; text-shadow: 2px 2px 0px rgba(0,210,137,0.3); font-size: 44px; letter-spacing: 2px;">HELLO USER</h1>
+            
+            <div class="neon-panel max-w-lg w-[90%] mb-8">
+                <p class="text-[12px] mb-4 text-[#543847] leading-loose uppercase font-bold">
+                    THIS WEBSITE IS DEVELOPED BY<br>
+                    <span class="text-[#d35400] text-[20px] block mt-4">ANUNAY SRIVASTAVA</span>
+                </p>
+                
+                <hr style="border-color: #543847; border-width: 2px; margin: 20px 0;">
+                
+                <div class="text-left mb-6">
+                    <h2 class="text-[14px] mb-4 font-bold" style="color: #00d289;">GAME FEATURES:</h2>
+                    <ul class="text-[11px] text-[#543847] leading-loose list-disc pl-6 uppercase space-y-3 font-bold">
+                        <li>REAL-TIME AI HAND TRACKING</li>
+                        <li>1:1 PURE GRAVITY-FREE DRAG</li>
+                        <li>PIXEL PERFECT PHYSICS ENGINE</li>
+                        <li>DYNAMIC DIFFICULTY SCALING</li>
+                        <li>CLASSIC 8-BIT AESTHETICS</li>
+                    </ul>
+                </div>
+                
+                <p class="text-[9px] text-[#543847] mt-8 tracking-widest font-bold">COPYRIGHT RIZENCODERS 2025</p>
+            </div>
+            
+            <button class="retro-btn neon-green" style="font-size: 20px; padding: 16px 32px;" onclick="dismissWelcome()">ENTER</button>
+        </div>
+
+        <div id="live-score" class="score-display hidden">0</div>
+        
+        <div id="hud-controls" class="hidden flex gap-2" style="position: absolute; top: 10px; left: 10px; z-index: 50;">
+            <button class="retro-btn red" style="padding: 10px 14px; font-size: 10px; margin: 0;" onclick="pauseGame()">PAUSE (ESC)</button>
+            <button class="retro-btn blue" style="padding: 10px 14px; font-size: 10px; margin: 0;" onclick="showInGameSettings()">SETTINGS</button>
+            <button class="retro-btn gray" style="padding: 10px 14px; font-size: 10px; margin: 0;" onclick="exitToMenu()">EXIT</button>
+        </div>
+        
+        <!-- Main Game Canvas -->
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+        <div id="loading-screen" class="screen" style="background-color: #70c5ce;">
+            <div class="title-text">LOADING AI...</div>
+            <p class="loading-text mt-4 text-xs">Starting Camera & Model</p>
+        </div>
+
+        <div id="menu-screen" class="screen hidden" style="background-color: rgba(0,0,0,0.4);">
+            <h1 class="title-text text-center text-white" style="-webkit-text-stroke: 4px #543847; text-shadow: 4px 4px 0px #543847;">FLAPPY<br>GESTURE</h1>
+            <div class="flex flex-col items-center gap-1 w-full max-w-md">
+                <button class="retro-btn green w-64 max-w-[80vw] mb-2" onclick="showScreen('level-screen')">PLAY GAME</button>
+                <button class="retro-btn neon-green w-64 max-w-[80vw]" onclick="showScreen('shop-screen'); buildShop();">SHOP</button>
+                <button class="retro-btn blue w-64 max-w-[80vw]" onclick="showScreen('settings-screen')">SETTINGS</button>
+                <button class="retro-btn purple w-64 max-w-[80vw]" onclick="showScreen('about-screen')">ABOUT</button>
+                <button class="retro-btn gray w-64 max-w-[80vw]" onclick="showScreen('contact-screen')">CONTACT US</button>
+            </div>
+        </div>
+
+        <div id="level-screen" class="screen hidden" style="background-color: rgba(0,0,0,0.6);">
+            <h2 class="title-text text-[#f1c40f]" style="-webkit-text-stroke: 2px #543847;">SELECT LEVEL</h2>
+            <div class="flex flex-col items-center w-full">
+                <button class="retro-btn green w-64 max-w-[80vw]" onclick="startGame('easy')">EASY</button>
+                <button class="retro-btn blue w-64 max-w-[80vw]" onclick="startGame('normal')">NORMAL</button>
+                <button class="retro-btn red w-64 max-w-[80vw]" onclick="startGame('hard')">HARD</button>
+                <button class="retro-btn gray mt-8 w-64 max-w-[80vw]" onclick="showScreen('menu-screen')">BACK</button>
+            </div>
+        </div>
+
+        <div id="pause-screen" class="screen hidden" style="background-color: rgba(0,0,0,0.6);">
+            <h2 class="title-text text-white" style="-webkit-text-stroke: 4px #543847; text-shadow: 4px 4px 0px #543847;">PAUSED</h2>
+            <div class="flex flex-col items-center gap-2 mt-4 w-full">
+                <button class="retro-btn green w-64 max-w-[80vw]" onclick="resumeGame()">RESUME</button>
+                <button class="retro-btn blue w-64 max-w-[80vw]" onclick="showInGameSettings()">SETTINGS</button>
+                <button class="retro-btn red w-64 max-w-[80vw]" onclick="exitToMenu()">MAIN MENU</button>
+            </div>
+        </div>
+
+        <div id="settings-screen" class="screen hidden" style="background-color: rgba(0,0,0,0.6);">
+            <h2 class="title-text text-[#3498db]" style="-webkit-text-stroke: 2px #543847;">SETTINGS</h2>
+            <div class="retro-panel w-[90%] max-w-[350px] mb-6 border-b-4 border-r-4">
+                
+                <h3 class="text-[12px] text-[#543847] mb-3">TRACKING SENSITIVITY</h3>
+                <div class="setting-group" id="sensitivity-group">
+                    <button class="retro-btn setting-btn gray" onclick="setSensitivity('low')">LOW</button>
+                    <button class="retro-btn setting-btn green" onclick="setSensitivity('normal')">MED</button>
+                    <button class="retro-btn setting-btn gray" onclick="setSensitivity('high')">HIGH</button>
+                </div>
+                <p class="text-[8px] text-[#543847] mb-4 font-bold border-b-4 border-[#543847] pb-4">Adjust hand movement required.</p>
+
+                <h3 class="text-[12px] text-[#543847] mb-3">SHOW SKELETON</h3>
+                <div class="setting-group" id="sens-group">
+                    <button class="retro-btn setting-btn gray" onclick="setSkeleton(false)">OFF</button>
+                    <button class="retro-btn setting-btn green" onclick="setSkeleton(true)">ON</button>
+                </div>
+                <p class="text-[8px] text-[#543847] mb-4 font-bold border-b-4 border-[#543847] pb-4">Draws green lines on camera feed.</p>
+
+                <h3 class="text-[12px] text-[#543847] mb-3 mt-4">MAX FPS CAP</h3>
+                <div class="setting-group" id="fps-group">
+                    <button class="retro-btn setting-btn gray" onclick="setFps(30)">30</button>
+                    <button class="retro-btn setting-btn green" onclick="setFps(60)">60</button>
+                    <button class="retro-btn setting-btn gray" onclick="setFps(120)">120</button>
+                </div>
+                <p class="text-[8px] text-[#543847] font-bold">120 FPS requires a 120Hz+ monitor.</p>
+                
+            </div>
+            <button class="retro-btn gray" onclick="closeSettings()">BACK</button>
+        </div>
+
+        <div id="shop-screen" class="screen hidden" style="background-color: rgba(0,0,0,0.8);">
+            <div class="retro-panel max-w-3xl w-[95%] mb-6 flex flex-col h-[80%] overflow-y-auto shop-scroll border-b-4 border-r-4" style="background-color: #ded895; padding: 24px;">
+                
+                <h3 class="text-[22px] text-[#3498db] mb-2 font-bold uppercase tracking-widest text-center" style="text-shadow: 2px 2px 0px rgba(0,0,0,0.1);">BIRD SKINS</h3>
+                <hr style="border-color: #543847; border-width: 4px; margin-bottom: 24px; width: 100%;">
+                
+                <div id="skin-grid" class="flex flex-wrap justify-center gap-4 mb-10">
+                    <!-- Skins injected by JS -->
+                </div>
+
+                <h3 class="text-[22px] text-[#00d289] mb-2 font-bold uppercase tracking-widest text-center" style="text-shadow: 2px 2px 0px rgba(0,0,0,0.1);">BACKGROUNDS</h3>
+                <hr style="border-color: #543847; border-width: 4px; margin-bottom: 24px; width: 100%;">
+                
+                <div id="bg-grid" class="flex flex-wrap justify-center gap-4 mb-4">
+                     <!-- Backgrounds injected by JS -->
+                </div>
+                
+            </div>
+            <button class="retro-btn gray" style="width: 200px; max-width: 80vw;" onclick="showScreen('menu-screen')">BACK</button>
+        </div>
+
+        <div id="about-screen" class="screen hidden" style="background-color: rgba(0,0,0,0.6);">
+            <h2 class="title-text text-[#9b59b6]" style="-webkit-text-stroke: 2px #543847;">ABOUT</h2>
+            <div class="retro-panel max-w-md w-[90%] mb-6 text-left border-b-4 border-r-4">
+                <h3 class="text-[14px] text-[#2ecc71] mb-2 font-bold">HOW TO PLAY</h3>
+                <p class="text-[10px] text-[#543847] leading-loose mb-4 border-b-4 border-[#543847] pb-4 font-bold">
+                    Hold hand in camera center.<br>
+                    Move hand Up/Down to fly.<br>
+                    No gravity! Bird follows hand.<br><br>
+                    *MOBILE/TABLET:* You can also drag the bird with your finger!
+                </p>
+                <h3 class="text-[14px] text-[#3498db] mb-2 font-bold mt-4">KEYBOARD & TOUCH</h3>
+                <p class="text-[10px] text-[#543847] leading-loose mb-4 border-b-4 border-[#543847] pb-4 font-bold">
+                    Keyboard: W/S or UP/DOWN<br>
+                    Touch: Swipe/Drag on screen<br>
+                    Pause: ESC
+                </p>
+                <div class="text-center mt-6">
+                    <h3 class="text-[14px] text-[#d35400] mb-2 font-bold">DEV: ANUNAY SRIVASTAVA</h3>
+                    <p class="text-[8px] text-[#543847] font-bold mt-4">COPYRIGHT RIZENCODERS 2025</p>
+                </div>
+            </div>
+            <button class="retro-btn gray" onclick="showScreen('menu-screen')">BACK</button>
+        </div>
+
+        <div id="contact-screen" class="screen hidden" style="background-color: rgba(0,0,0,0.6);">
+            <h2 class="title-text text-[#e67e22]" style="-webkit-text-stroke: 2px #543847;">CONTACT US</h2>
+            <div class="retro-panel max-w-md w-[90%] mb-6 flex flex-col items-center gap-4 border-b-4 border-r-4">
+                <h3 class="text-[14px] text-[#2ecc71] mb-2 font-bold">ANUNAY SRIVASTAVA</h3>
+                
+                <a href="https://www.instagram.com/anunay_srivastava108?igsh=N3NsdDF4Nmdycndp" target="_blank" class="retro-btn purple w-64 max-w-[80vw] flex items-center justify-center gap-3" style="text-decoration: none;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                    INSTAGRAM
+                </a>
+                
+                <a href="https://www.linkedin.com/in/anunay-srivastava-2638a1362?utm_source=share_via&utm_content=profile&utm_medium=member_android" target="_blank" class="retro-btn blue w-64 max-w-[80vw] flex items-center justify-center gap-3" style="text-decoration: none;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>
+                    LINKEDIN
+                </a>
+                
+                <a href="https://github.com/anunaysrivastava04-coder" target="_blank" class="retro-btn gray w-64 max-w-[80vw] flex items-center justify-center gap-3" style="text-decoration: none; color: white;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                    GITHUB
+                </a>
+            </div>
+            <button class="retro-btn gray" onclick="showScreen('menu-screen')">BACK</button>
+        </div>
+
+        <div id="game-over-screen" class="screen hidden" style="background-color: rgba(0,0,0,0.1);">
+            <div class="title-text text-[#f1c40f]" style="-webkit-text-stroke: 2px white; text-shadow: 4px 4px 0px #543847;">GAME OVER</div>
+            
+            <div class="retro-panel w-[90%] max-w-[360px] flex flex-col items-center mb-6">
+                <div class="flex w-full justify-between items-center mb-4">
+                    <div class="text-[12px] text-[#d35400] font-bold">PILLARS</div>
+                    <div id="end-score" class="text-3xl text-white" style="-webkit-text-stroke: 2px black; text-shadow: 2px 2px 0px black;">0</div>
+                </div>
+                <div class="flex w-full justify-between items-center mb-2">
+                    <div class="text-[12px] text-[#d35400] font-bold">HIGH SCORE</div>
+                    <div id="end-best" class="text-3xl text-white" style="-webkit-text-stroke: 2px black; text-shadow: 2px 2px 0px black;">0</div>
+                </div>
+                <div id="new-best-badge" class="hidden bg-red-500 text-white text-[10px] py-2 px-3 border-2 border-black mt-4 animate-bounce">NEW BEST SCORE!</div>
+            </div>
+
+            <div class="flex gap-4">
+                <button class="retro-btn green" onclick="startGame()">RESTART</button>
+                <button class="retro-btn gray" onclick="exitToMenu()">HOME</button>
+            </div>
+        </div>
+
+        <!-- CAMERA HUD -->
+        <div class="cam-hud">
+            <div class="cam-feed">
+                <video id="webcam" autoplay playsinline muted></video>
+                <canvas id="camCanvas"></canvas>
+            </div>
+            <div class="cam-status">
+                <div id="status-text" class="status-lost">WAITING...</div>
+            </div>
+            <div class="cam-watermark">DEVELOPED BY<br>ANUNAY SRIVASTAVA</div>
+        </div>
+    </div>
+
+    <script type="module">
+        const SKINS = [
+            {name: "CLASSIC", body: "#f1c40f", belly: "#ffffff", outline: "#543847"},
+            {name: "RUBY",    body: "#e74c3c", belly: "#ffffff", outline: "#543847"},
+            {name: "SAPPHIRE",body: "#3498db", belly: "#ffffff", outline: "#543847"},
+            {name: "EMERALD", body: "#2ecc71", belly: "#ffffff", outline: "#543847"},
+            {name: "AMETHYST",body: "#9b59b6", belly: "#ffffff", outline: "#543847"},
+            {name: "ROSE",    body: "#fd79a8", belly: "#ffffff", outline: "#543847"},
+            {name: "NINJA",   body: "#2d3436", belly: "#636e72", outline: "#000000"},
+            {name: "GHOST",   body: "#dfe6e9", belly: "#ffffff", outline: "#b2bec3"},
+            {name: "PUMPKIN", body: "#e67e22", belly: "#ffffff", outline: "#543847"},
+            {name: "FROST",   body: "#00cec9", belly: "#ffffff", outline: "#0984e3"},
+            {name: "GOLDEN",  body: "#f39c12", belly: "#f1c40f", outline: "#d35400"},
+            {name: "NEON",    body: "#00d289", belly: "#ffffff", outline: "#00593b"},
+            {name: "WOODEN",  body: "#cd6133", belly: "#ccae62", outline: "#472b11"},
+            {name: "VAMPIRE", body: "#b33939", belly: "#1e272e", outline: "#000000"},
+            {name: "ZOMBIE",  body: "#badc58", belly: "#6ab04c", outline: "#222f3e"}
+        ];
+
+        const CONFIG = {
+            width: 800,
+            height: 600,
+            pipeWidth: 70,
+            groundHeight: 112,
+        };
+
+        const STATE = {
+            screen: 'loading',
+            score: 0,
+            bestScore: localStorage.getItem('flappyBest') || 0,
+            frames: 0,
+            gameActive: false,
+            
+            difficulty: localStorage.getItem('flappyDiff') || 'normal',
+            sensitivity: localStorage.getItem('flappySens') || 'normal',
+            showSkeleton: localStorage.getItem('flappySkel') !== 'false', 
+            fpsCap: parseInt(localStorage.getItem('flappyFPS')) || 60,
+            
+            currentSkin: parseInt(localStorage.getItem('flappySkin')) || 0,
+            currentBg: localStorage.getItem('flappyBg') || 'normal',
+
+            basePipeSpeed: 3.5,
+            speedMultTarget: 1.0,
+            speedMultCurrent: 1.0,
+
+            activePipeSpeed: 3.5,
+            activePipeGap: 200,
+            activeSpawnRate: 120
+        };
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        function resize() {
+            const aspect = CONFIG.width / CONFIG.height;
+            let w = window.innerWidth;
+            let h = window.innerHeight;
+            if (w / h > aspect) w = h * aspect;
+            else h = w / aspect;
+            canvas.style.width = w + 'px';
+            canvas.style.height = h + 'px';
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        
+        // Touch Dragging Fallback for Mobile/Tablet users
+        function handleTouchMove(e) {
+            if (STATE.screen !== 'playing') return;
+            e.preventDefault(); 
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            
+            // Map the physical screen touch coordinate to the internal canvas game resolution
+            const scaleY = CONFIG.height / rect.height;
+            let y = (touch.clientY - rect.top) * scaleY;
+            
+            // Apply coordinates to the bird, keeping it inside the screen
+            game.bird.targetY = Math.max(16, Math.min(CONFIG.height - CONFIG.groundHeight - 16, y));
+        }
+
+        canvas.addEventListener('touchstart', handleTouchMove, {passive: false});
+        canvas.addEventListener('touchmove', handleTouchMove, {passive: false});
+
+        const audio = {
+            synth: null,
+            init() {
+                if(this.synth) return; 
+                this.synth = new Tone.PolySynth(Tone.Synth).toDestination();
+                this.synth.volume.value = -10;
+            },
+            play(type) {
+                if (!this.synth) return;
+                if (Tone.context.state !== 'running') Tone.context.resume();
+                if (type === 'score') {
+                    this.synth.triggerAttackRelease("E5", "8n");
+                } else if (type === 'hit') {
+                    this.synth.triggerAttackRelease(["C3", "E2"], "8n");
+                }
+            }
+        };
+
+        const game = {
+            bgX: 0,
+            fgX: 0,
+            bird: { 
+                x: 200, 
+                y: 300, 
+                targetY: 300, 
+                visualRotation: 0, 
+                animOffset: 0,
+                lastY: 300
+            }, 
+            pipes: [],
+            loopId: null,
+
+            reset(difficulty) {
+                this.bird.y = CONFIG.height / 2;
+                this.bird.targetY = CONFIG.height / 2;
+                this.bird.lastY = CONFIG.height / 2;
+                this.bird.visualRotation = 0;
+                this.bird.animOffset = 0;
+                this.pipes = [];
+                STATE.score = 0;
+                STATE.frames = 0;
+                STATE.difficulty = difficulty || STATE.difficulty;
+                localStorage.setItem('flappyDiff', STATE.difficulty);
+                
+                if (STATE.difficulty === 'easy') {
+                    STATE.speedMultTarget = 1.35;
+                } else if (STATE.difficulty === 'hard') {
+                    STATE.speedMultTarget = 1.95;
+                } else {
+                    STATE.speedMultTarget = 1.65;
+                }
+                STATE.speedMultCurrent = STATE.speedMultTarget;
+                
+                document.getElementById('live-score').innerText = STATE.score;
+            },
+
+            addPipe() {
+                const minH = 60;
+                const gapToUse = STATE.activePipeGap;
+                const maxH = CONFIG.height - CONFIG.groundHeight - gapToUse - 60;
+                const safeMaxH = Math.max(minH, maxH);
+                const topH = Math.floor(Math.random() * (safeMaxH - minH + 1) + minH);
+
+                this.pipes.push({
+                    x: CONFIG.width,
+                    topH: topH,
+                    bottomY: topH + gapToUse,
+                    w: CONFIG.pipeWidth,
+                    passed: false
+                });
+            },
+
+            checkAABB(rect1, rect2) {
+                return (rect1.x < rect2.x + rect2.w &&
+                        rect1.x + rect1.w > rect2.x &&
+                        rect1.y < rect2.y + rect2.h &&
+                        rect1.y + rect1.h > rect2.y);
+            },
+
+            updateDifficultyScaling() {
+                let targetSpeed = 1.0;
+                let gapMult = 1.0;
+
+                if (STATE.difficulty === 'easy') {
+                    if (STATE.score >= 20) { targetSpeed = 2.10; gapMult = 0.70; }
+                    else if (STATE.score >= 10) { targetSpeed = 1.70; gapMult = 0.85; }
+                    else { targetSpeed = 1.35; gapMult = 1.0; }
+                } else if (STATE.difficulty === 'normal') {
+                    if (STATE.score >= 30) { targetSpeed = 2.90; gapMult = 0.60; }
+                    else if (STATE.score >= 20) { targetSpeed = 2.45; gapMult = 0.75; }
+                    else if (STATE.score >= 10) { targetSpeed = 2.05; gapMult = 0.85; }
+                    else { targetSpeed = 1.65; gapMult = 1.0; }
+                } else if (STATE.difficulty === 'hard') {
+                    if (STATE.score >= 30) { targetSpeed = 3.65; gapMult = 0.45; }
+                    else if (STATE.score >= 20) { targetSpeed = 3.10; gapMult = 0.55; }
+                    else if (STATE.score >= 10) { targetSpeed = 2.50; gapMult = 0.70; }
+                    else { targetSpeed = 1.95; gapMult = 0.9; }
+                }
+
+                STATE.speedMultTarget = targetSpeed;
+                STATE.speedMultCurrent += (STATE.speedMultTarget - STATE.speedMultCurrent) * 0.02;
+
+                STATE.activePipeSpeed = STATE.basePipeSpeed * STATE.speedMultCurrent;
+                STATE.activePipeGap = Math.max(120, 200 * gapMult); 
+                STATE.activeSpawnRate = Math.max(25, Math.floor((120 / STATE.speedMultCurrent) * (STATE.fpsCap / 60)));
+            },
+
+            update() {
+                if (STATE.screen !== 'playing') return;
+                STATE.frames++;
+                
+                let timeScale = 60 / STATE.fpsCap;
+                this.updateDifficultyScaling();
+                let currentSpeed = STATE.activePipeSpeed * timeScale;
+
+                this.bgX -= (currentSpeed * 0.1); 
+                if (this.bgX <= -CONFIG.width) this.bgX = 0;
+                this.fgX -= currentSpeed;
+                if (this.fgX <= -24) this.fgX = 0; 
+
+                // 1:1 Smooth Drag
+                this.bird.lastY = this.bird.y;
+                const diffY = this.bird.targetY - this.bird.y;
+                this.bird.y += diffY * (0.15 * timeScale); 
+                
+                // Visual Rotation Logic
+                let velocityY = this.bird.y - this.bird.lastY;
+                let targetRotation = Math.min(Math.PI / 4, Math.max(-Math.PI / 4, velocityY * 0.08));
+                this.bird.visualRotation += (targetRotation - this.bird.visualRotation) * 0.2;
+                
+                // Bird bobbing animation
+                this.bird.animOffset = Math.sin(STATE.frames * (0.25 * timeScale)) * 6;
+                
+                if (this.bird.y < 16) this.bird.y = 16;
+
+                if (STATE.frames % STATE.activeSpawnRate === 0) {
+                    this.addPipe();
+                }
+
+                let birdRect = { 
+                    x: this.bird.x - 16, 
+                    y: this.bird.y - 12 + 4, 
+                    w: 44, 
+                    h: 26 - 8 
+                };
+
+                for (let i = this.pipes.length - 1; i >= 0; i--) {
+                    let p = this.pipes[i];
+                    p.x -= currentSpeed;
+
+                    if (!p.passed && this.bird.x > p.x + p.w) {
+                        p.passed = true;
+                        STATE.score++;
+                        audio.play('score');
+                        document.getElementById('live-score').innerText = STATE.score;
+                    }
+
+                    let topPipeRect = { x: p.x, y: 0, w: p.w, h: p.topH };
+                    let topCapRect =  { x: p.x - 4, y: p.topH - 24, w: p.w + 8, h: 24 }; 
+                    let botPipeRect = { x: p.x, y: p.bottomY, w: p.w, h: CONFIG.height - p.bottomY };
+                    let botCapRect =  { x: p.x - 4, y: p.bottomY, w: p.w + 8, h: 24 };
+
+                    if (this.checkAABB(birdRect, topPipeRect) || 
+                        this.checkAABB(birdRect, topCapRect) || 
+                        this.checkAABB(birdRect, botPipeRect) || 
+                        this.checkAABB(birdRect, botCapRect)) {
+                        window.gameOver();
+                        return;
+                    }
+
+                    if (p.x + p.w < -50) this.pipes.splice(i, 1);
+                }
+
+                let groundRect = { x: 0, y: CONFIG.height - CONFIG.groundHeight, w: CONFIG.width, h: CONFIG.groundHeight };
+                if (this.checkAABB(birdRect, groundRect)) {
+                    window.gameOver();
+                    return;
+                }
+            },
+
+            draw() {
+                let skyColor = '#70c5ce';
+                if(STATE.currentBg === 'city') skyColor = '#1a0b2e';
+                if(STATE.currentBg === 'hills') skyColor = '#87CEEB';
+                if(STATE.currentBg === 'village') skyColor = '#70a1ff';
+                
+                ctx.fillStyle = skyColor;
+                ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+
+                for(let i = 0; i < 2; i++) {
+                    let offset = this.bgX + (i * CONFIG.width);
+                    
+                    if (STATE.currentBg === 'normal') {
+                        ctx.fillStyle = '#e0f7fa'; 
+                        ctx.fillRect(offset + 100, 300, 150, 40);
+                        ctx.fillRect(offset + 130, 270, 90, 30);
+                        ctx.fillRect(offset + 500, 450, 120, 40);
+                        ctx.fillRect(offset + 530, 420, 60, 30);
+                    } 
+                    else if (STATE.currentBg === 'city') {
+                        ctx.fillStyle = '#341f4f'; 
+                        ctx.fillRect(offset + 50, 200, 100, 400);
+                        ctx.fillRect(offset + 250, 150, 120, 450);
+                        ctx.fillRect(offset + 550, 250, 90, 350);
+                        ctx.fillStyle = '#23153c'; 
+                        ctx.fillRect(offset + 120, 280, 80, 320);
+                        ctx.fillRect(offset + 400, 180, 100, 420);
+                        ctx.fillStyle = '#f1c40f'; 
+                        ctx.fillRect(offset + 70, 230, 15, 25);
+                        ctx.fillRect(offset + 70, 280, 15, 25);
+                        ctx.fillRect(offset + 280, 180, 15, 25);
+                        ctx.fillRect(offset + 320, 180, 15, 25);
+                        ctx.fillRect(offset + 420, 220, 15, 25);
+                    }
+                    else if (STATE.currentBg === 'hills') {
+                        ctx.fillStyle = '#2ecc71';
+                        ctx.beginPath(); ctx.arc(offset + 200, CONFIG.height - CONFIG.groundHeight, 180, Math.PI, 0); ctx.fill();
+                        ctx.fillStyle = '#27ae60';
+                        ctx.beginPath(); ctx.arc(offset + 550, CONFIG.height - CONFIG.groundHeight + 20, 220, Math.PI, 0); ctx.fill();
+                    }
+                    else if (STATE.currentBg === 'village') {
+                        ctx.fillStyle = '#747d8c'; 
+                        ctx.fillRect(offset + 280, CONFIG.height - CONFIG.groundHeight - 50, 15, 50);
+                        ctx.fillRect(offset + 600, CONFIG.height - CONFIG.groundHeight - 40, 15, 40);
+                        ctx.fillStyle = '#2ed573'; 
+                        ctx.beginPath(); ctx.arc(offset + 287, CONFIG.height - CONFIG.groundHeight - 50, 40, 0, Math.PI*2); ctx.fill();
+                        ctx.beginPath(); ctx.arc(offset + 607, CONFIG.height - CONFIG.groundHeight - 40, 35, 0, Math.PI*2); ctx.fill();
+                        ctx.fillStyle = '#f1f2f6'; 
+                        ctx.fillRect(offset + 100, CONFIG.height - CONFIG.groundHeight - 70, 90, 70);
+                        ctx.fillStyle = '#ff4757'; 
+                        ctx.beginPath(); ctx.moveTo(offset + 90, CONFIG.height - CONFIG.groundHeight - 70); ctx.lineTo(offset + 145, CONFIG.height - CONFIG.groundHeight - 120); ctx.lineTo(offset + 200, CONFIG.height - CONFIG.groundHeight - 70); ctx.fill();
+                        ctx.fillStyle = '#2f3542'; 
+                        ctx.fillRect(offset + 135, CONFIG.height - CONFIG.groundHeight - 35, 20, 35);
+                        ctx.fillStyle = '#f1c40f'; 
+                        ctx.fillRect(offset + 110, CONFIG.height - CONFIG.groundHeight - 50, 15, 15);
+                    }
+                }
+
+                for (let p of this.pipes) {
+                    ctx.fillStyle = '#73bf2e'; 
+                    ctx.strokeStyle = '#543847';
+                    ctx.lineWidth = 4;
+                    ctx.fillRect(p.x, 0, p.w, p.topH);
+                    ctx.strokeRect(p.x, -4, p.w, p.topH + 4);
+                    ctx.fillRect(p.x - 4, p.topH - 24, p.w + 8, 24);
+                    ctx.strokeRect(p.x - 4, p.topH - 24, p.w + 8, 24);
+                    ctx.fillRect(p.x, p.bottomY, p.w, CONFIG.height - p.bottomY);
+                    ctx.strokeRect(p.x, p.bottomY, p.w, CONFIG.height - p.bottomY);
+                    ctx.fillRect(p.x - 4, p.bottomY, p.w + 8, 24);
+                    ctx.strokeRect(p.x - 4, p.bottomY, p.w + 8, 24);
+                }
+
+                ctx.fillStyle = '#ded895';
+                ctx.fillRect(0, CONFIG.height - CONFIG.groundHeight, CONFIG.width, CONFIG.groundHeight);
+                ctx.strokeStyle = '#543847';
+                ctx.lineWidth = 4;
+                ctx.beginPath(); ctx.moveTo(0, CONFIG.height - CONFIG.groundHeight); ctx.lineTo(CONFIG.width, CONFIG.height - CONFIG.groundHeight); ctx.stroke();
+                ctx.fillStyle = '#d3ca72';
+                for(let i=0; i<CONFIG.width + 48; i+=24) {
+                    ctx.beginPath(); ctx.moveTo(i + this.fgX, CONFIG.height - CONFIG.groundHeight); ctx.lineTo(i + 12 + this.fgX, CONFIG.height - CONFIG.groundHeight); ctx.lineTo(i - 12 + this.fgX, CONFIG.height); ctx.lineTo(i - 24 + this.fgX, CONFIG.height); ctx.fill();
+                }
+
+                const bx = this.bird.x;
+                const by = this.bird.y; 
+
+                ctx.save();
+                ctx.translate(bx, by + this.bird.animOffset);
+                ctx.rotate(this.bird.visualRotation); 
+
+                const skin = SKINS[STATE.currentSkin] || SKINS[0];
+
+                ctx.fillStyle = skin.outline; 
+                ctx.fillRect(-16, -12, 34, 26); 
+                ctx.fillStyle = skin.body; 
+                ctx.fillRect(-12, -8, 26, 18);
+                ctx.fillStyle = skin.belly;
+                ctx.fillRect(-12, 6, 26, 4);
+                ctx.fillStyle = '#ffffff'; 
+                ctx.fillRect(4, -8, 12, 12);
+                ctx.fillStyle = '#543847'; 
+                ctx.fillRect(10, -4, 4, 4);
+                ctx.fillStyle = '#e67e22'; 
+                ctx.fillRect(14, 2, 14, 6);
+                ctx.fillStyle = '#d35400'; 
+                ctx.fillRect(12, 8, 12, 4);
+                
+                ctx.fillStyle = '#ffffff'; 
+                let timeScale = 60 / STATE.fpsCap;
+                const isFlapping = (STATE.frames % Math.floor(10 * timeScale)) < Math.floor(5 * timeScale); 
+                
+                if (STATE.screen === 'playing' && isFlapping) {
+                    ctx.fillRect(-14, -6, 14, 8);
+                    ctx.fillStyle = '#543847'; 
+                    ctx.strokeRect(-14, -6, 14, 8);
+                } else {
+                    ctx.fillRect(-14, -2, 14, 8);
+                    ctx.fillStyle = '#543847';
+                    ctx.strokeRect(-14, -2, 14, 8);
+                }
+
+                ctx.restore();
+            }
+        };
+
+        let lastTime = 0;
+        let fpsCounter = 0;
+        let lastFpsUpdate = 0;
+
+        function gameLoop(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const elapsed = timestamp - lastTime;
+            const fpsInterval = 1000 / STATE.fpsCap;
+            
+            if (elapsed >= fpsInterval) {
+                lastTime = timestamp - (elapsed % fpsInterval);
+                game.update();
+                game.draw();
+                
+                fpsCounter++;
+                if (timestamp - lastFpsUpdate >= 1000) {
+                    document.getElementById('fps-counter').innerText = `FPS: ${fpsCounter}`;
+                    fpsCounter = 0;
+                    lastFpsUpdate = timestamp;
+                }
+            }
+            
+            game.loopId = requestAnimationFrame(gameLoop);
+        }
+
+        window.showScreen = function(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            if(id) document.getElementById(id).classList.remove('hidden');
+        }
+
+        window.dismissWelcome = function() {
+            document.getElementById('welcome-screen').style.display = 'none';
+            window.showScreen('menu-screen'); 
+            STATE.screen = 'menu';
+        }
+
+        window.setSkeleton = function(val) {
+            STATE.showSkeleton = val;
+            localStorage.setItem('flappySkel', val);
+            updateSettingsUI();
+        }
+
+        window.setFps = function(val) {
+            STATE.fpsCap = val;
+            localStorage.setItem('flappyFPS', val);
+            updateSettingsUI();
+        }
+
+        window.setSensitivity = function(val) {
+            STATE.sensitivity = val;
+            localStorage.setItem('flappySens', val);
+            updateSettingsUI();
+        }
+
+        window.buildShop = function() {
+            const skinGrid = document.getElementById('skin-grid');
+            skinGrid.innerHTML = '';
+            
+            SKINS.forEach((skin, idx) => {
+                const isSelected = STATE.currentSkin === idx;
+                const btn = document.createElement('button');
+                btn.className = `retro-btn setting-btn`;
+                btn.style.width = '105px';
+                btn.style.height = '65px';
+                btn.style.display = 'flex';
+                btn.style.flexDirection = 'column';
+                btn.style.alignItems = 'center';
+                btn.style.justifyContent = 'center';
+                btn.style.margin = '0';
+                btn.style.border = '4px solid white';
+                btn.style.padding = '8px';
+                btn.style.boxShadow = '4px 4px 0px rgba(0,0,0,0.2)';
+                
+                if (isSelected) {
+                    btn.style.backgroundColor = '#00d289'; 
+                    btn.style.color = '#ffffff';
+                    btn.style.textShadow = '2px 2px 0px #000';
+                } else {
+                    btn.style.backgroundColor = '#95a5a6'; 
+                    btn.style.color = '#000000';
+                    btn.style.textShadow = 'none';
+                }
+                
+                btn.onclick = () => { window.setSkin(idx); };
+                btn.innerHTML = `<span style="font-size:9px; margin-bottom:6px; font-weight:bold; letter-spacing:1px;">${skin.name}</span><div style="width:24px; height:16px; background:${skin.body}; border:3px solid #543847; box-shadow: 2px 2px 0px rgba(0,0,0,0.2);"></div>`;
+                skinGrid.appendChild(btn);
+            });
+
+            const bgGrid = document.getElementById('bg-grid');
+            bgGrid.innerHTML = '';
+            
+            const bgs = [
+                {id: 'normal', name: 'NORMAL', bg: '#70c5ce'},
+                {id: 'city', name: 'CITY', bg: '#1a0b2e'},
+                {id: 'hills', name: 'HILLS', bg: '#87CEEB'},
+                {id: 'village', name: 'VILLAGE', bg: '#70a1ff'}
+            ];
+            
+            bgs.forEach(bg => {
+                const isSelected = STATE.currentBg === bg.id;
+                const btn = document.createElement('button');
+                btn.className = `retro-btn setting-btn`;
+                btn.style.width = '130px';
+                btn.style.height = '65px';
+                btn.style.display = 'flex';
+                btn.style.flexDirection = 'column';
+                btn.style.alignItems = 'center';
+                btn.style.justifyContent = 'center';
+                btn.style.margin = '0';
+                btn.style.border = '4px solid white';
+                btn.style.padding = '8px';
+                btn.style.boxShadow = '4px 4px 0px rgba(0,0,0,0.2)';
+                
+                if (isSelected) {
+                    btn.style.backgroundColor = '#3498db'; 
+                    btn.style.color = '#ffffff';
+                    btn.style.textShadow = '2px 2px 0px #000';
+                } else {
+                    btn.style.backgroundColor = '#95a5a6'; 
+                    btn.style.color = '#000000';
+                    btn.style.textShadow = 'none';
+                }
+                
+                btn.onclick = () => { window.setBg(bg.id); };
+                btn.innerHTML = `<span style="font-size:9px; margin-bottom:8px; font-weight:bold; letter-spacing:1px;">${bg.name}</span><div style="width:80%; height:8px; background:${bg.bg}; border:2px solid #543847; box-shadow: 2px 2px 0px rgba(0,0,0,0.2);"></div>`;
+                bgGrid.appendChild(btn);
+            });
+        }
+
+        window.setSkin = function(idx) {
+            STATE.currentSkin = idx;
+            localStorage.setItem('flappySkin', idx);
+            window.buildShop();
+        }
+
+        window.setBg = function(id) {
+            STATE.currentBg = id;
+            localStorage.setItem('flappyBg', id);
+            window.buildShop();
+        }
+
+        function updateSettingsUI() {
+            const skelGroup = document.getElementById('sens-group');
+            if (skelGroup && skelGroup.children.length === 2) {
+                const skelBtns = skelGroup.children;
+                skelBtns[0].className = `retro-btn setting-btn ${!STATE.showSkeleton ? 'red' : 'gray'}`;
+                skelBtns[1].className = `retro-btn setting-btn ${STATE.showSkeleton ? 'green' : 'gray'}`;
+            }
+
+            const sensGroup = document.getElementById('sensitivity-group');
+            if (sensGroup && sensGroup.children.length === 3) {
+                const sensBtns = sensGroup.children;
+                sensBtns[0].className = `retro-btn setting-btn ${STATE.sensitivity === 'low' ? 'green' : 'gray'}`;
+                sensBtns[1].className = `retro-btn setting-btn ${STATE.sensitivity === 'normal' ? 'green' : 'gray'}`;
+                sensBtns[2].className = `retro-btn setting-btn ${STATE.sensitivity === 'high' ? 'green' : 'gray'}`;
+            }
+
+            const fpsGroup = document.getElementById('fps-group');
+            if (fpsGroup && fpsGroup.children.length === 3) {
+                const fpsBtns = fpsGroup.children;
+                fpsBtns[0].className = `retro-btn setting-btn ${STATE.fpsCap === 30 ? 'green' : 'gray'}`;
+                fpsBtns[1].className = `retro-btn setting-btn ${STATE.fpsCap === 60 ? 'green' : 'gray'}`;
+                fpsBtns[2].className = `retro-btn setting-btn ${STATE.fpsCap === 120 ? 'green' : 'gray'}`;
+            }
+            
+            const fpsCounter = document.getElementById('fps-counter');
+            if (fpsCounter) fpsCounter.classList.remove('hidden');
+        }
+
+        window.startGame = function(diff) {
+            let useDiff = diff;
+            if (!useDiff) {
+                useDiff = STATE.difficulty;
+            }
+            audio.init();
+            game.reset(useDiff);
+            STATE.screen = 'playing';
+            STATE.gameActive = true;
+            document.getElementById('live-score').classList.remove('hidden');
+            document.getElementById('hud-controls').classList.remove('hidden');
+            window.showScreen(''); 
+        }
+        
+        window.pauseGame = function() {
+            if(STATE.screen === 'playing') {
+                STATE.screen = 'paused';
+                window.showScreen('pause-screen');
+                document.getElementById('hud-controls').classList.add('hidden');
+            }
+        }
+
+        window.resumeGame = function() {
+            if(STATE.screen === 'paused') {
+                STATE.screen = 'playing';
+                window.showScreen(''); 
+                document.getElementById('hud-controls').classList.remove('hidden');
+            }
+        }
+        
+        window.showInGameSettings = function() {
+            if(STATE.screen === 'playing') {
+                STATE.screen = 'paused';
+            }
+            window.showScreen('settings-screen');
+            document.getElementById('hud-controls').classList.add('hidden');
+        }
+        
+        window.closeSettings = function() {
+            if (STATE.gameActive) {
+                window.showScreen('pause-screen');
+                STATE.screen = 'paused';
+            } else {
+                window.showScreen('menu-screen');
+                STATE.screen = 'menu';
+            }
+        }
+
+        window.exitToMenu = function() {
+            STATE.screen = 'menu';
+            STATE.gameActive = false;
+            document.getElementById('live-score').classList.add('hidden');
+            document.getElementById('hud-controls').classList.add('hidden');
+            window.showScreen('menu-screen');
+        }
+
+        window.gameOver = function() {
+            STATE.screen = 'gameover';
+            STATE.gameActive = false;
+            audio.play('hit');
+            document.getElementById('live-score').classList.add('hidden');
+            document.getElementById('hud-controls').classList.add('hidden');
+            
+            const isNewBest = STATE.score > STATE.bestScore;
+            if (isNewBest) {
+                STATE.bestScore = STATE.score;
+                localStorage.setItem('flappyBest', STATE.bestScore);
+                document.getElementById('new-best-badge').classList.remove('hidden');
+            } else {
+                document.getElementById('new-best-badge').classList.add('hidden');
+            }
+
+            document.getElementById('end-score').innerText = STATE.score;
+            document.getElementById('end-best').innerText = STATE.bestScore;
+            window.showScreen('game-over-screen');
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp' || e.key.toLowerCase() === 'w') {
+                e.preventDefault();
+                if (STATE.screen === 'playing') game.bird.targetY -= 50;
+            }
+            if (e.key === 'ArrowDown' || e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                if (STATE.screen === 'playing') game.bird.targetY += 50;
+            }
+            
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (STATE.screen === 'menu-screen' || STATE.screen === 'gameover') {
+                    window.startGame();
+                }
+            }
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                if (STATE.screen === 'playing') {
+                    window.pauseGame();
+                } else if (STATE.screen === 'paused') {
+                    window.resumeGame();
+                } else if (STATE.screen === 'settings-screen') {
+                    window.closeSettings();
+                } else if (STATE.screen === 'gameover' || STATE.screen === 'level-screen' || STATE.screen === 'about-screen' || STATE.screen === 'contact-screen') {
+                    window.exitToMenu();
+                }
+            }
+        });
+
+        const video = document.getElementById('webcam');
+        const camCanvas = document.getElementById('camCanvas');
+        const camCtx = camCanvas.getContext('2d');
+        const statusText = document.getElementById('status-text');
+        
+        let handLandmarker = null;
+        let lastVideoTime = -1;
+
+        async function initAI() {
+            try {
+                const { HandLandmarker, FilesetResolver } = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3");
+                
+                const vision = await FilesetResolver.forVisionTasks(
+                    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
+                );
+                
+                handLandmarker = await HandLandmarker.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
+                        delegate: "GPU"
+                    },
+                    runningMode: "VIDEO",
+                    numHands: 1
+                });
+                
+                startCamera();
+            } catch (err) {
+                console.error("AI Error:", err);
+                statusText.innerText = "AI FAILED";
+                statusText.className = "cam-status status-lost";
+            }
+        }
+
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: 480, height: 480, facingMode: "user" } 
+                });
+                video.srcObject = stream;
+                video.play();
+                video.addEventListener("loadeddata", predictWebcam);
+                
+                updateSettingsUI();
+            } catch (err) {
+                console.error("Camera Error:", err);
+                statusText.innerText = "NO CAMERA";
+                statusText.className = "cam-status status-lost";
+                updateSettingsUI();
+            }
+        }
+
+        function predictWebcam() {
+            camCanvas.width = video.videoWidth;
+            camCanvas.height = video.videoHeight;
+            
+            if (lastVideoTime !== video.currentTime && handLandmarker) {
+                lastVideoTime = video.currentTime;
+                const results = handLandmarker.detectForVideo(video, performance.now());
+                
+                camCtx.clearRect(0, 0, camCanvas.width, camCanvas.height);
+                
+                if (results.landmarks && results.landmarks.length > 0) {
+                    const landmarks = results.landmarks[0];
+                    
+                    statusText.innerText = "TRACKING OK ✓";
+                    statusText.className = "cam-status status-ok";
+
+                    const handY = landmarks[9].y; 
+                    
+                    let comfortTop = 0.2;
+                    let comfortBottom = 0.8;
+                    
+                    if (STATE.sensitivity === 'low') {
+                        comfortTop = 0.05; 
+                        comfortBottom = 0.95;
+                    } else if (STATE.sensitivity === 'high') {
+                        comfortTop = 0.35; 
+                        comfortBottom = 0.65;
+                    }
+
+                    let mappedY = (handY - comfortTop) / (comfortBottom - comfortTop);
+                    mappedY = Math.max(0, Math.min(1, mappedY)); 
+                    
+                    if (STATE.screen === 'playing') {
+                        game.bird.targetY = mappedY * CONFIG.height;
+                    }
+
+                    if (STATE.showSkeleton) {
+                        drawGreenSkeleton(landmarks, camCtx, camCanvas.width, camCanvas.height);
+                    }
+                } else {
+                    statusText.innerText = "? NO HAND";
+                    statusText.className = "cam-status status-lost";
+                }
+            }
+            requestAnimationFrame(predictWebcam);
+        }
+
+        function drawGreenSkeleton(landmarks, context, w, h) {
+            context.save();
+            context.lineWidth = 4;
+            context.strokeStyle = "#00ff00"; 
+            context.fillStyle = "#00ff00";   
+            
+            const connections = [
+                [0, 1, 2, 3, 4],       
+                [0, 5, 6, 7, 8],       
+                [5, 9, 10, 11, 12],    
+                [9, 13, 14, 15, 16],   
+                [13, 17, 18, 19, 20],  
+                [0, 5, 9, 13, 17, 0]   
+            ];
+
+            connections.forEach(group => {
+                context.beginPath();
+                for (let i = 0; i < group.length - 1; i++) {
+                    const p1 = landmarks[group[i]];
+                    const p2 = landmarks[group[i+1]];
+                    context.moveTo(p1.x * w, p1.y * h);
+                    context.lineTo(p2.x * w, p2.y * h);
+                }
+                context.stroke();
+            });
+
+            landmarks.forEach((point) => {
+                context.beginPath();
+                context.arc(point.x * w, point.y * h, 5, 0, 2 * Math.PI);
+                context.fill();
+            });
+            
+            context.restore();
+        }
+
+        game.draw(); 
+        requestAnimationFrame(gameLoop);
+        initAI(); 
+    </script>
+</body>
+</html>
