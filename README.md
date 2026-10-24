@@ -4,6 +4,26 @@ Flappy Gesture is a browser-based, retro-style Flappy Bird-inspired game. The up
 
 > **Source-grounded note:** This documentation describes what is present in the supplied `index.html`. It does not claim that every control has been tested on every browser or device.
 
+
+# 🎮 Visit Flappy Gestures
+
+Play the live game here:
+
+## 👉 [VISIT THE GAME](https://flappygestures.netlify.app/)
+
+**Live Game URL:** https://flappygestures.netlify.app/
+
+Click the link above to open Flappy Gestures and start playing. Follow the on-screen instructions to play the game.
+
+---
+
+Developed project: Flappy Gestures  
+Platform: Web  
+Live Demo: https://flappygestures.netlify.app/
+
+
+
+
 ## Features
 
 - Real-time single-hand landmark detection using MediaPipe Tasks Vision.
